@@ -449,7 +449,7 @@ let VideoPlayer = cc.Class({
     play () {
         if (this._impl) {
             this._syncVolume();
-            this._impl.play();
+            return this._impl.play();
         }
     },
 

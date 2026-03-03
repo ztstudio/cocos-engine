@@ -251,7 +251,7 @@ let VideoPlayerImpl = cc.Class({
     play: function () {
         let video = this._video;
         if (!video || !this._visible || this._playing) return;
-        video.play();
+        return video.play();
     },
 
     pause: function () {
