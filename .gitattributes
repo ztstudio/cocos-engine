@@ -1,0 +1,83 @@
+# ===== 默认 =====
+* text=auto
+
+# ===== 代码 / 配置 强制 LF（跨平台协作核心）=====
+*.ts        text eol=lf
+*.js        text eol=lf
+*.mjs       text eol=lf
+*.json      text eol=lf
+*.b3        text eol=lf
+*.yaml      text eol=lf
+*.yml       text eol=lf
+*.md        text eol=lf
+*.txt       text eol=lf
+*.xml       text eol=lf
+*.html      text eol=lf
+*.css       text eol=lf
+
+# ===== Cocos Creator 资产 强制 LF（.meta 改 EOL 会触发"幽灵修改"）=====
+*.meta      text eol=lf
+*.fire      text eol=lf
+*.prefab    text eol=lf
+*.scene     text eol=lf
+*.anim      text eol=lf
+*.fnt       text eol=lf
+*.plist     text eol=lf
+*.exportjson text eol=lf
+
+# ===== Windows 脚本 CRLF =====
+*.bat       text eol=crlf
+*.cmd       text eol=crlf
+*.ps1       text eol=crlf
+
+# ===== Unix 脚本 LF（CRLF 会让 sh 解析失败）=====
+*.sh        text eol=lf
+
+# ===== 二进制资源（明确标记，防 git 误判 / EOL 转换破坏文件）=====
+# 注意：gitattributes 一行只能有一个 pattern，多个 pattern 必须分别成行
+# 图片
+*.png     binary
+*.jpg     binary
+*.jpeg    binary
+*.gif     binary
+*.webp    binary
+*.bmp     binary
+*.tga     binary
+*.psd     binary
+*.pvr     binary
+*.pkm     binary
+*.astc    binary
+*.dds     binary
+# 音频
+*.wav     binary
+*.mp3     binary
+*.ogg     binary
+*.m4a     binary
+*.aac     binary
+*.flac    binary
+*.mp4     binary
+*.mov     binary
+*.webm    binary
+# 字体
+*.ttf     binary
+*.otf     binary
+*.woff    binary
+*.woff2   binary
+# 二进制数据
+*.bin     binary
+*.db      binary
+*.skel    binary
+*.atlas   binary
+*.pex     binary
+*.zip     binary
+*.gz      binary
+*.7z      binary
+*.rar     binary
+# FairyGUI 包
+*.fui     binary
+
+# ===== GitHub 语言统计（可选，把编辑器生成的资产标成 generated，不污染语言比例）=====
+*.meta    linguist-generated=true
+*.fire    linguist-generated=true
+*.prefab  linguist-generated=true
+*.b3      linguist-generated=true

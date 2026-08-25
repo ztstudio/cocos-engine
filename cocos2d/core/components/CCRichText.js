@@ -117,6 +117,8 @@ let RichText = cc.Class({
         this._labelSegments = [];
         this._labelSegmentsCache = [];
         this._linesWidth = [];
+        // 每行实际最大高度（遇到大图会被撑开），与 _linesWidth 同步增长
+        this._lineHeights = [];
 
         if (CC_EDITOR) {
             this._userDefinedFont = null;
@@ -483,6 +485,7 @@ let RichText = cc.Class({
         this._labelSegments.length = 0;
         this._labelSegmentsCache.length = 0;
         this._linesWidth.length = 0;
+        this._lineHeights.length = 0;
         this._lineOffsetX = 0;
         this._lineCount = 1;
         this._labelWidth = 0;
@@ -588,6 +591,7 @@ let RichText = cc.Class({
 
     _updateLineInfo () {
         this._linesWidth.push(this._lineOffsetX);
+        this._lineHeights.push(this.lineHeight);
         this._lineOffsetX = 0;
         this._lineCount++;
     },
@@ -689,6 +693,18 @@ let RichText = cc.Class({
             }
 
             if (expectWidth > 0) spriteWidth = expectWidth;
+
+            // 用图片实际高度撑开当前行：取 max(当前行高, 图片实际高度)
+            // 兼容第一行就遇到图片但 _lineHeights 还未被末尾兜底 push 的情形
+            {
+                let curIdx = this._lineCount - 1;
+                if (this._lineHeights[curIdx] === undefined) {
+                    this._lineHeights[curIdx] = this.lineHeight;
+                }
+                if (spriteHeight > this._lineHeights[curIdx]) {
+                    this._lineHeights[curIdx] = spriteHeight;
+                }
+            }
 
             if (this.maxWidth > 0) {
                 if (this._lineOffsetX + spriteWidth > this.maxWidth) {
@@ -799,12 +815,20 @@ let RichText = cc.Class({
         }
         if (!lastEmptyLine) {
             this._linesWidth.push(this._lineOffsetX);
+            this._lineHeights.push(this.lineHeight);
         }
 
         if (this.maxWidth > 0) {
             this._labelWidth = this.maxWidth;
         }
-        this._labelHeight = (this._lineCount + textUtils.BASELINE_RATIO) * this.lineHeight;
+        // 整块高度改为各行实际高度之和 + BASELINE_RATIO * lineHeight 的底部 padding
+        // 用 _lineCount 作上界 + || this.lineHeight 兜底，等价于原 (lineCount + BASELINE) * lineHeight 的语义
+        // 当末尾以 \n 结尾时 _lineHeights.length 可能 < _lineCount，兜底正好补上空行高度
+        let sumLineHeights = 0;
+        for (let i = 0; i < this._lineCount; ++i) {
+            sumLineHeights += this._lineHeights[i] || this.lineHeight;
+        }
+        this._labelHeight = sumLineHeights + textUtils.BASELINE_RATIO * this.lineHeight;
 
         // trigger "size-changed" event
         this.node.setContentSize(this._labelWidth, this._labelHeight);
@@ -863,7 +887,18 @@ let RichText = cc.Class({
 
             let labelSize = label.getContentSize();
 
-            label.y = this.lineHeight * (totalLineCount - lineCount) - this._labelHeight / 2;
+            // label.y 是节点"底部 y"（文字 Label 在 _addLabelSegment 里被 setAnchorPoint(0, 0)）
+            // 基础公式 = 下方所有行实际高度之和 - 整块高度的一半
+            // 退化到所有行高均为 lineHeight 时，等价于原 lineHeight*(totalLineCount - lineCount) - labelHeight/2
+            // 但当某行被图片撑开（curLineH > lineHeight）时，labelHeight 也跟着变大，主公式会让
+            // 当前行的文字 Label 整体往下掉（curLineH - lineHeight)/2，文字 Label 中心跑出当前行，
+            // 所以要补回 (curLineH - this.lineHeight)/2 让文字 Label 中心对齐到 baseline 视觉中心
+            let belowHeight = 0;
+            for (let k = lineCount; k < totalLineCount; ++k) {
+                belowHeight += this._lineHeights[k] || this.lineHeight;
+            }
+            let curLineH = this._lineHeights[lineCount - 1] || this.lineHeight;
+            label.y = belowHeight - this._labelHeight / 2 + (curLineH - this.lineHeight) / 2;
 
             if (lineCount === nextLineIndex) {
                 nextTokenX += labelSize.width;
@@ -872,7 +907,10 @@ let RichText = cc.Class({
             let sprite = label.getComponent(cc.Sprite);
             if (sprite) {
                 // adjust img align (from <img align=top|center|bottom>)
-                let lineHeightSet = this.lineHeight;
+                // - lineHeightSet 用当前行的实际高度（图片撑开后的高度），决定图片在该行内的对齐位置
+                // - lineHeightReal 恒等于 this.lineHeight * (1+BASELINE)，表示"文字 Label 的实际渲染高度"
+                //   （撑开只是图片引起的，文字行高没变），保留原代码 baseline 偏移的语义
+                let lineHeightSet = this._lineHeights[lineCount - 1] || this.lineHeight;
                 let lineHeightReal = this.lineHeight * (1 + textUtils.BASELINE_RATIO); //single line node height
                 switch (label.anchorY)
                 {
